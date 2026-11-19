@@ -3,7 +3,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 wikipedia.set_user_agent(
-    "IST303 Pair Exercise 4 - student project"
+    "IST303PairExercise/1.0 (https://github.com/amirstrongkhan/Pair-Exercise-4)"
 )
 
 wikipedia.set_rate_limiting(True)
@@ -13,35 +13,31 @@ wikipedia.set_rate_limiting(True)
 # SEARCH FOR TOPICS
 # -------------------------
 
-topics = None
-
-for attempt in range(3):
-    try:
-        topics = wikipedia.search(
-            "generative artificial intelligence"
-        )
-        break
-    except Exception:
-        print("Wikipedia search failed. Retrying...")
-        time.sleep(2)
-
-if topics is None:
-    print("Wikipedia search could not be completed.")
-    raise SystemExit
-
-print(topics)
+def search_topics():
+    for attempt in range(3):
+        try:
+            topics = wikipedia.search("generative artificial intelligence")
+            if not topics:
+                raise SystemExit("Wikipedia returned no topics.")
+            return topics
+        except Exception as error:
+            if attempt == 2:
+                raise SystemExit(f"Wikipedia search failed: {error}") from error
+            print("Wikipedia search failed. Retrying...")
+            time.sleep(2)
 
 
 # -------------------------
 # SECTION A - SEQUENTIAL
 # -------------------------
 
+topics = search_topics()
+print(topics)
+
 start_time = time.perf_counter()
 
 for each_topic in topics:
     print("Sequential downloading:", each_topic)
-
-    page = None
 
     for attempt in range(3):
         try:
@@ -54,11 +50,11 @@ for each_topic in topics:
             references = page.references
             break
 
-        except Exception:
-            print("Retrying:", each_topic)
-            time.sleep(1)
-
-    if page is None:
+        except Exception as error:
+            print(f"Download failed for {each_topic}: {error}")
+            if attempt < 2:
+                time.sleep(1)
+    else:
         print("Could not download:", each_topic)
         continue
 
@@ -102,8 +98,6 @@ def wiki_dl_and_save(topic):
 
     print("Concurrent downloading:", topic)
 
-    page = None
-
     for attempt in range(3):
 
         try:
@@ -116,11 +110,11 @@ def wiki_dl_and_save(topic):
             references = page.references
             break
 
-        except Exception:
-            print("Retrying:", topic)
-            time.sleep(1)
-
-    if page is None:
+        except Exception as error:
+            print(f"Download failed for {topic}: {error}")
+            if attempt < 2:
+                time.sleep(1)
+    else:
         print("Could not download:", topic)
         return
 
@@ -139,6 +133,11 @@ def wiki_dl_and_save(topic):
     except Exception:
         print("Could not save:", topic)
 
+
+# Repeat the search for Section B before timing the downloads.
+wikipedia.search.clear_cache()
+topics = search_topics()
+print(topics)
 
 start_time = time.perf_counter()
 
